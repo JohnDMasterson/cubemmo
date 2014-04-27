@@ -1,15 +1,15 @@
 var express = require('express'),
+	app = express(),
 	server = require('http').createServer(app),
-	io = require('socket.io');
+	io = require('socket.io').listen(server);
 	
-server.listen(5000);
-var sockets [];
+//server.listen(5000);
+var sockets = {};
 	
-app.configure( function() {
-	app.set('views', __dirname + '/views');
-	app.set('view engine', 'jade');
-	app.use(express.static(path.resolve('./public')));
-});
+	
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
+app.use(express.static(__dirname + './public'));
 
 io.configure(function() {
 	io.set("transports", ["xhr-polling"]);
