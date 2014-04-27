@@ -1,7 +1,7 @@
 {
   "name": "FirstTrySocketIO",
   "description": "Trying to get socket.io to work on heroku",
-  "version": "0.1",
+  "version": "0.0.1",
   "dependencies": {
     "express": "3.x",
     "socket.io": "~0.9.16"
