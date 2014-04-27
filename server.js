@@ -3,7 +3,7 @@ var express = require('express'),
 	io = require('socket.io');
 	
 server.listen(5000);
-var sockets {};
+var sockets [];
 	
 app.configure( function() {
 	app.set('views', __dirname + '/views');
