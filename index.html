@@ -17,15 +17,14 @@
       }
     </style>
 
-    <script>
-      var host = location.origin.replace('http://cubemmo.herokuapp.com', 'ws')
-      var ws = new WebSocket(host);
-      ws.onmessage = function (event) {
-        var li = document.createElement('li');
-        li.innerHTML = JSON.parse(event.data);
-        document.querySelector('#pings').appendChild(li);
-      };
-    </script>
+    <script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://localhost');
+  socket.on('news', function (data) {
+    console.log(data);
+    socket.emit('my other event', { my: 'data' });
+  });
+</script>
   </head>
   <body>
     <h1>Pings</h1>
