@@ -1,13 +1,22 @@
 {
-  "name": "FirstTrySocketIO",
-  "description": "Trying to get socket.io to work on heroku",
-  "version": "0.0.1",
-  "dependencies": {
-    "express": "3.x",
-    "socket.io": "~0.9.16"
+  "name": "cubemmo",
+  "version": "0.0.0",
+  "description": "trying to get nodejs and socket.io to work",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git@heroku.com:cubemmo.git"
+  },
+  "author": "John Masterson",
+  "license": "MIT",
   "engines": {
-    "node": "0.10.x",
-    "npm": "1.3.x"
+    "node": "0.10.x"
+  },
+  "dependencies": {
+    "logfmt": "^1.1.2",
+    "express": "^4.1.0"
   }
 }
