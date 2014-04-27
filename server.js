@@ -1,14 +1,41 @@
-var express = require("express");
-var logfmt = require("logfmt");
-var app = express();
-
-app.use(logfmt.requestLogger());
-
-app.get('/', function(req, res) {
-  res.send('Hello World!');
+var express = require('express'),
+	server = require('http').createServer(app),
+	io = require('socket.io');
+	
+server.listen(5000);
+var sockets {};
+	
+app.configure( function() {
+	app.set('views', __dirname + '/views');
+	app.set('view engine', 'jade');
+	app.use(express.static(path.resolve('./public')));
 });
 
-var port = Number(process.env.PORT || 5000);
-app.listen(port, function() {
-  console.log("Listening on " + port);
+io.configure(function() {
+	io.set("transports", ["xhr-polling"]);
+	io.set("polling duration", 10);
 });
+
+app.get('/', function(req,res) {
+	res.render('index');
+});
+
+io.sockets.on('connection', function(socket) {
+	console.log("New Websocket Connection: " + socket.id);
+	sockets[socket.id] = socket;
+	socket.on('relay_me', function (message) {
+		for(s in sockets) {
+				if(sockets[s])
+					sockets[s].emit("incoming_message", message);
+				else
+					console.log("broken socket");
+		}
+	});
+	
+	socket.on('disconnect', function() {
+		console.log('Removing Socket: ' + socket.id);
+		delete sockets[socket.id];
+	});
+
+});
+
