@@ -55,7 +55,6 @@ function getShader(gl, glslcode, type) {
     } else if (type == "x-shader/x-vertex") {
         shader = gl.createShader(gl.VERTEX_SHADER);
     } else {
-    	alert("failure to create shader");
         return null;
     }
 
@@ -64,7 +63,6 @@ function getShader(gl, glslcode, type) {
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         alert(gl.getShaderInfoLog(shader));
-
         return null;
     }
 
@@ -74,7 +72,7 @@ function getShader(gl, glslcode, type) {
 
 
 function initShaders() {
-	var fsource = getSourceSync("shaders/defualt.frag");
+	var fsource = getSourceSync("shaders/default.frag");
 	var vsource = getSourceSync("shaders/default.vert");
 
     var fragmentShader = getShader(gl, fsource, "x-shader/x-fragment");
