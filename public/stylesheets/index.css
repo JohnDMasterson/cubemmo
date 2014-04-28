@@ -3,9 +3,8 @@ May not be the best way to do some things.
 Still relatively inexperienced with making scalable styles. 
 */
 
-.message_container {
+.webgl_container {
 	background-color: black;
-	border-radius: 20px;
 	width: 800px;
 	height: 500px;
     margin: auto auto;
@@ -13,24 +12,6 @@ Still relatively inexperienced with making scalable styles.
     padding: 10px;
 }
 
-.output {
-	background-color: white;
-	border-radius: 10px;
-	display: block;
-	margin-bottom: 20px;
-    height: 410px;
-	font-size: 28px;
-	overflow: scroll;
-	padding: 10px;
-    word-wrap:break-word;
-}
+.canvas {
 
-.input {
-	display: block;
-	border-radius: 15px;
-	width: 100%;
-	height: 50px;
-	margin: auto auto;
-	text-align: center;
-	font-size: 28px;
 }

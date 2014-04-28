@@ -1,9 +1,16 @@
 link(rel="stylesheet", href="stylesheets/index.css")
 script(type='text/javascript', src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.2/jquery.min.js")
 script(type='text/javascript', src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.10/socket.io.min.js")
+
+
+script(type="text/javascript", src="http://learningwebgl.com/lessons/lesson01/glMatrix-0.9.5.min.js")
+
+script(type="x-shader/x-fragment", id="shader-fs", src="javascripts/frag.js")
+
+script(type="x-shader/x-vertex", id="shader-vs", src="javascripts/vert.js")
+
 script(type="text/javascript", src="javascripts/index.js")
 
 body
-	.message_container
-		.output
-		input.input(type="text")
+	.webgl_container
+		canvas#cubemmo-canvas
