@@ -5,7 +5,10 @@ var express = require('express'),
 	
 var port = process.env.PORT || 3000;
 server.listen(port);
+
 var sockets = {};
+
+var cubes = {};
 	
 	
 app.set('views', __dirname + '/views');
@@ -24,10 +27,16 @@ app.get('/', function(req,res) {
 io.sockets.on('connection', function(socket) {
 	console.log("New Websocket Connection: " + socket.id);
 	sockets[socket.id] = socket;
-	socket.on('relay_me', function (message) {
+
+	io.sockets.sockets[socket.id].emit("give_id", socket.id);
+
+
+	socket.on('give_position', function (client) {
+		console.log(socket.id + " moved to " + client.pos);
+		cubes[client.id] = client.pos;
 		for(s in sockets) {
 				if(sockets[s])
-					sockets[s].emit("incoming_message", message);
+					sockets[s].emit("update_position", client);
 				else
 					console.log("broken socket");
 		}
@@ -36,6 +45,14 @@ io.sockets.on('connection', function(socket) {
 	socket.on('disconnect', function() {
 		console.log('Removing Socket: ' + socket.id);
 		delete sockets[socket.id];
+		delete cubes[socket.id];
+		for(s in sockets) {
+				if(sockets[s])
+					sockets[s].emit("delete_cube", socket.id);
+				else
+					console.log("broken socket");
+		}
+
 	});
 
 });

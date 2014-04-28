@@ -1,8 +1,17 @@
 // Startup websocket connection
 var socket = io.connect('/');
 
+
+//my socket id;
+var myId = "";
 // Initializes position for the user;
-var postion = {};
+var position = {'x':0, 'y':0, 'z':0};
+//initializes the cubes direction
+var angle = 0;
+
+
+//holds other objects that we need to draw
+var otherCubes = {};
 
 //gl instance
 var gl;
@@ -26,7 +35,44 @@ var getSourceSync = function(url) {
 
 
 $(document).ready(function (){
-	window.addEventListener("load", webGLStart(), true);
+	webGLStart();
+
+
+    //client is given his id
+    socket.on('give_id', function (id) {
+        myId = id;
+        $(document.body).append(myId);
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle});
+    });
+
+    //client is requested for his position
+    socket.on('get_position', function () {
+        socket.emit('give_position', position);
+    });
+
+    //client is told another client's position
+    socket.on('update_position', function ( cube ) {
+        if (cube.id != myId)
+        {
+            $(document.body).append('<br>cube ' + cube.id + ' moved to ' + cube.pos.x + "," + cube.pos.y + "," + cube.pos.z );
+            otherCubes[cube.id] = cube;
+        }
+    });
+
+    socket.on('delete_cube', function ( cubeID ) {
+        $(document.body).append('<br>deleting cube ' + cubeID );
+        delete otherCubes[cubeID];
+    });
+
+    socket.on('give_all_positions', function ( allPos ) {
+        for (p in allPos) {
+            if (p.id != myId)
+                otherCubes[p.id] = p;
+        }
+        for (c in otherCubes) {
+            $(document.body).append('<br>cube: ' + c.id);
+        }
+    });
 
 });
 
@@ -130,17 +176,30 @@ function initBuffers() {
 
 
 function drawScene() {
+    //sets up viewport
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    //clears out the previous buffers in video cards memory
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    //the section below deals with transformation matricies
+
+    //perspective matrix
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-
+    //I have no idea right now
     mat4.identity(mvMatrix);
-
+    //translation matrix
     mat4.translate(mvMatrix, [-1.5, 0.0, -7.0]);
+
+
+    //the section below will draw the triangle
+
+    //binds triangle's buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+    //enables the buffer to be read from
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    //no idea...
     setMatrixUniforms();
+    //draws the triangle
     gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
 
 
