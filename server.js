@@ -33,13 +33,17 @@ io.sockets.on('connection', function(socket) {
 
 	socket.on('give_position', function (client) {
 		console.log(socket.id + " moved to " + client.pos);
-		cubes[client.id] = client.pos;
+		cubes[client.id] = client;
 		for(s in sockets) {
 				if(sockets[s])
 					sockets[s].emit("update_position", client);
 				else
 					console.log("broken socket");
 		}
+	});
+
+	socket.on('get_all_positions', function () {
+		sockets[socket.id].emit("give_all_positions", cubes);
 	});
 	
 	socket.on('disconnect', function() {

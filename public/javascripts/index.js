@@ -41,36 +41,33 @@ $(document).ready(function (){
     //client is given his id
     socket.on('give_id', function (id) {
         myId = id;
-        $(document.body).append(myId);
         socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle});
+        socket.emit('get_all_positions');
     });
 
     //client is requested for his position
     socket.on('get_position', function () {
-        socket.emit('give_position', position);
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
     });
 
     //client is told another client's position
     socket.on('update_position', function ( cube ) {
         if (cube.id != myId)
         {
-            $(document.body).append('<br>cube ' + cube.id + ' moved to ' + cube.pos.x + "," + cube.pos.y + "," + cube.pos.z );
             otherCubes[cube.id] = cube;
         }
     });
 
     socket.on('delete_cube', function ( cubeID ) {
-        $(document.body).append('<br>deleting cube ' + cubeID );
         delete otherCubes[cubeID];
     });
 
     socket.on('give_all_positions', function ( allPos ) {
         for (p in allPos) {
-            if (p.id != myId)
-                otherCubes[p.id] = p;
-        }
-        for (c in otherCubes) {
-            $(document.body).append('<br>cube: ' + c.id);
+            if (allPos[p].id != myId)
+            {
+                otherCubes[p.id] = allPos[p];
+            }
         }
     });
 
@@ -150,16 +147,6 @@ function setMatrixUniforms() {
 }
 
 function initBuffers() {
-    triangleVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-    var vertices = [
-         0.0,  1.0,  0.0,
-        -1.0, -1.0,  0.0,
-         1.0, -1.0,  0.0
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    triangleVertexPositionBuffer.itemSize = 3;
-    triangleVertexPositionBuffer.numItems = 3;
 
     squareVertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
@@ -188,26 +175,32 @@ function drawScene() {
     //I have no idea right now
     mat4.identity(mvMatrix);
     //translation matrix
-    mat4.translate(mvMatrix, [-1.5, 0.0, -7.0]);
+    mat4.translate(mvMatrix, [position.x, position.y, position.z]);
 
-
-    //the section below will draw the triangle
-
-    //binds triangle's buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-    //enables the buffer to be read from
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    //no idea...
-    setMatrixUniforms();
-    //draws the triangle
-    gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
-
-
-    mat4.translate(mvMatrix, [3.0, 0.0, 0.0]);
+    //the section below draws the squares
     gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    
+
+
     setMatrixUniforms();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+    
+
+    for(c in otherCubes) {
+        //turns matrix back into identity matrix
+        mat4.identity(mvMatrix);
+        //translation matrix
+        mat4.translate(mvMatrix, [otherCubes[c].pos.x, otherCubes[c].pos.y, otherCubes[c].pos.z]);
+
+
+        setMatrixUniforms();
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+    }
+}
+
+function render() {
+    request
 }
 
 
@@ -218,14 +211,45 @@ function webGLStart() {
     initShaders();
     initBuffers();
 
+    //arow key controls
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+
 	
 	//background color, black
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	//enables 3D stuff
 	gl.enable(gl.DEPTH_TEST);
 	
-	drawScene();
+	setInterval(drawScene,33);
 }
 
+function handleKeyUp(event) {
+    if(event.keyCode == 37){}
+}
+
+function handleKeyDown(event) {
+    //left
+    if(event.keyCode == 37) {
+        position.x = position.x-1;
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
+    }
+    //up
+    if(event.keyCode == 38) {
+        position.z = position.z+1;
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
+    }
+    //right
+    if(event.keyCode == 39) {
+        position.x = position.x+1;
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
+    }
+    //down
+    if(event.keyCode == 40) {
+        position.z = position.z-1;
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
+    }
+       
+}
 
 	
