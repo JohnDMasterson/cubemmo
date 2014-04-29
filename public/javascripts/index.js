@@ -5,7 +5,7 @@ var socket = io.connect('/');
 //my socket id;
 var myId = "";
 // Initializes position for the user;
-var position = {'x':0, 'y':0, 'z':-10};
+var position = {'x':0, 'y':0, 'z':0};
 //initializes the cubes direction
 var angle = 0;
 
@@ -24,6 +24,30 @@ var cubeColorBuffer;
 //matrices used for transformations
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
+var mvStack = [];
+
+
+//matrix for knowing if key is pressed or not
+var isPressed = {};
+
+var lastDrawn = 0;
+var lastEngine = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -60,15 +84,44 @@ $(document).ready(function (){
 
 	//server gives client all positions
     socket.on('give_all_positions', function ( allPos ) {
+        var strin = ""
         for (p in allPos) {
             if (allPos[p].id != myId)
             {
-                otherCubes[p.id] = allPos[p];
+                
+                otherCubes[p] = allPos[p];
             }
         }
     });
 
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -81,9 +134,32 @@ var getSourceSync = function(url) {
 		return (req.status == 200) ? req.responseText : null;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function initGL(canvas) {
 	try {
-		gl = canvas.getContext("webgl");
+		gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
 		resizeCanvas();
 	}
 	catch (e) {
@@ -93,6 +169,31 @@ function initGL(canvas) {
 		alert ("Could not initialize WebGL");
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function getShader(gl, glslcode, type) { 
 
@@ -117,6 +218,39 @@ function getShader(gl, glslcode, type) {
 
     return shader;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function initShaders() {
@@ -149,10 +283,63 @@ function initShaders() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function setMatrixUniforms() {
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function initBuffers() {
 	//three buffers created
@@ -229,6 +416,28 @@ function initBuffers() {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function drawScene() {
     //sets up viewport
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -239,10 +448,11 @@ function drawScene() {
 
     //perspective matrix
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-    //I have no idea right now
-    mat4.identity(mvMatrix);
-    //translation matrix
-    mat4.translate(mvMatrix, [position.x, position.y, position.z]);
+    
+
+
+
+ 
 
     //the section below draws the squares
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
@@ -252,24 +462,87 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.colorAttribute, cubeColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
     
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
-    setMatrixUniforms();
-    gl.drawElements(gl.TRIANGLES, cubeIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    
+ 
 
     for(c in otherCubes) {
-        //turns matrix back into identity matrix
+        //Turns mvMatrix into identity
         mat4.identity(mvMatrix);
-        //translation matrix
+
+
+
+
+        // , we rotate the other cube
+        mat4.rotate(mvMatrix, degToRad(otherCubes[c].ang), [0,1,0]);
+        // , we translate the other cubes to the origin
         mat4.translate(mvMatrix, [otherCubes[c].pos.x, otherCubes[c].pos.y, otherCubes[c].pos.z]);
+
+
+
+
+        //first, we rotate the world to how your cube see's it
+        mat4.rotate(mvMatrix, degToRad(-angle), [0,1,0]);
+        //then we translate the world's origin to where your cube is
+        mat4.translate(mvMatrix, [-position.x, -position.y, -position.z]);
+
+
 
         setMatrixUniforms();
         gl.drawElements(gl.TRIANGLES, cubeIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
     }
 }
 
-function render() {
-    request
+
+
+
+
+
+
+
+function mvPushMatrix() {
+    var mvCopy = mat4.create();
+    mat4.set(mvMatrix, mvCopy);
+    mvStack.push(mvCopy);
 }
+
+function mvPopMatrix() {
+    if(mvStack.length == 0)
+        throw "matrix stack contains no matrices";
+    else
+        mvMatrix = mvStack.pop();
+}
+
+function degToRad(degrees) {
+    return degrees * Math.PI / 180;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function mainLoop() {
+    keyHandler();
+    drawScene();
+    requestAnimFrame(mainLoop);
+}
+
+
+
+
+
 
 
 
@@ -289,36 +562,113 @@ function webGLStart() {
 	//enables 3D stuff
 	gl.enable(gl.DEPTH_TEST);
 	
-	setInterval(drawScene,33);
+
+	mainLoop();
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function handleKeyUp(event) {
-    if(event.keyCode == 37){}
+    isPressed[event.keyCode] = false;
 }
 
 function handleKeyDown(event) {
-    //left
-    if(event.keyCode == 37) {
-        position.x = position.x-1;
-        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
-    }
-    //up
-    if(event.keyCode == 38) {
-        position.z = position.z+1;
-        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
-    }
-    //right
-    if(event.keyCode == 39) {
-        position.x = position.x+1;
-        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
-    }
-    //down
-    if(event.keyCode == 40) {
-        position.z = position.z-1;
-        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
-    }
-       
+    isPressed[event.keyCode] = true;
 }
+
+
+function keyHandler() {
+
+    //these control movement
+    //a 65
+    if(isPressed[65] == true) {
+        moveRight(-.15);
+    }
+    //w 87
+    if(isPressed[87] == true) {
+        moveForward(.15);
+    }
+    //d 68
+    if(isPressed[68] == true) {
+        moveRight(.15);
+    }
+    //s 83
+    if(isPressed[83] == true) {
+        moveForward(-.15);
+    }
+
+
+    //these control turning
+    //q 81
+    if(isPressed[81] == true) {
+        turnRight(1);
+    }
+    //e 69
+    if(isPressed[69] == true) {
+        turnRight(-1);
+    }
+}
+
+function moveForward(distance) {
+    var xtemp = distance*Math.sin(degToRad(angle));
+    var ztemp = distance*Math.cos(degToRad(angle));
+    position.x = position.x - xtemp;
+    position.z = position.z - ztemp;
+
+
+    socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} ); 
+}
+
+function moveRight(distance) {
+    socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} ); 
+}
+
+function turnRight(distance) {
+        angle = (angle + distance)%360;    
+        socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );   
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
