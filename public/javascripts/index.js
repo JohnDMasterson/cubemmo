@@ -16,27 +16,21 @@ var otherCubes = {};
 //gl instance
 var gl;
 
-var triangleVertexPositionBuffer;
+//buffers for vertices
+var cubeVertexBuffer;
+var cubeIndexBuffer;
+var cubeColorBuffer;
 
-var squareVertexPositionBuffer;
-
+//matrices used for transformations
 var mvMatrix = mat4.create();
-
 var pMatrix = mat4.create();
 
 
-//used for getting files from server
-var getSourceSync = function(url) {
-		var req = new XMLHttpRequest();
-		req.open("GET", url, false);
-		req.send(null);
-		return (req.status == 200) ? req.responseText : null;
-};
 
 
+//this is called when the document loads
 $(document).ready(function (){
 	webGLStart();
-
 
     //client is given his id
     socket.on('give_id', function (id) {
@@ -58,10 +52,12 @@ $(document).ready(function (){
         }
     });
 
+	//other client disconnected
     socket.on('delete_cube', function ( cubeID ) {
         delete otherCubes[cubeID];
     });
 
+	//server gives client all positions
     socket.on('give_all_positions', function ( allPos ) {
         for (p in allPos) {
             if (allPos[p].id != myId)
@@ -74,6 +70,15 @@ $(document).ready(function (){
 });
 
 
+
+
+//used for getting files from server
+var getSourceSync = function(url) {
+		var req = new XMLHttpRequest();
+		req.open("GET", url, false);
+		req.send(null);
+		return (req.status == 200) ? req.responseText : null;
+};
 
 function initGL(canvas) {
 	try {
@@ -132,8 +137,11 @@ function initShaders() {
 
     gl.useProgram(shaderProgram);
 
-    shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+    shaderProgram.vertexAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(shaderProgram.vertexAttribute);
+	
+    shaderProgram.colorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+    gl.enableVertexAttribArray(shaderProgram.colorAttribute);
 
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
@@ -147,18 +155,77 @@ function setMatrixUniforms() {
 }
 
 function initBuffers() {
+	//three buffers created
+	//first buffer holds all the vertices
+	//second buffer holds the indices in the order we want to call them
+	//third buffer holds colors for vertices 
 
-    squareVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-    vertices = [
-         1.0,  1.0,  0.0,
-        -1.0,  1.0,  0.0,
-         1.0, -1.0,  0.0,
-        -1.0, -1.0,  0.0
+    cubeVertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
+    var vertices = [
+         1.0,  1.0,   1.0,
+        -1.0,  1.0,   1.0,
+         1.0, -1.0,   1.0,
+        -1.0, -1.0,   1.0,
+         1.0,  1.0,  -1.0,
+        -1.0,  1.0,  -1.0,
+         1.0, -1.0,  -1.0,
+        -1.0, -1.0,  -1.0
     ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    squareVertexPositionBuffer.itemSize = 3;
-    squareVertexPositionBuffer.numItems = 4;
+    cubeVertexBuffer.itemSize = 3;
+    cubeVertexBuffer.numItems = 8;
+	
+	
+	
+	cubeIndexBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer); 
+	var indices = [
+		//front faces
+		0,	1,	2,
+		1,	3,	2,
+		
+		//back faces
+		4,	6,	7,
+		4,	7,	5,
+		
+		//top faces
+		4,	5,	0,
+		5,	1,	0,
+		
+		//right faces
+		4,	0,	2,
+		6,	4,	2,
+		
+		//bottom faces
+		2,	3,	6,
+		3,	7,	6,
+		
+		//left faces
+		1,	5,	3,
+		5,	7,	3
+	];
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+	cubeIndexBuffer.numItems = 36;
+	
+	
+	
+	cubeColorBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, cubeColorBuffer);
+	var colors = [
+		1.0,	0.0,	0.0,	1.0,
+		0.0,	1.0,	0.0,	1.0,
+		0.0,	0.0,	1.0,	1.0,
+		1.0,	0.0,	0.0,	1.0,
+		0.0,	1.0,	0.0,	1.0,
+		0.0,	0.0,	1.0,	1.0,
+		1.0,	0.0,	0.0,	1.0,
+		0.0,	1.0,	0.0,	1.0
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+	cubeColorBuffer.itemSize = 4;
+	cubeColorBuffer.numItems = 8;
+	
 }
 
 
@@ -168,7 +235,7 @@ function drawScene() {
     //clears out the previous buffers in video cards memory
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    //the section below deals with transformation matricies
+    //the section below deals with transformation matrices
 
     //perspective matrix
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
@@ -178,13 +245,15 @@ function drawScene() {
     mat4.translate(mvMatrix, [position.x, position.y, position.z]);
 
     //the section below draws the squares
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexAttribute, cubeVertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
     
-
-
+	gl.bindBuffer(gl.ARRAY_BUFFER, cubeColorBuffer);
+    gl.vertexAttribPointer(shaderProgram.colorAttribute, cubeColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
     setMatrixUniforms();
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+    gl.drawElements(gl.TRIANGLES, cubeIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     
 
     for(c in otherCubes) {
@@ -193,9 +262,8 @@ function drawScene() {
         //translation matrix
         mat4.translate(mvMatrix, [otherCubes[c].pos.x, otherCubes[c].pos.y, otherCubes[c].pos.z]);
 
-
         setMatrixUniforms();
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+        gl.drawElements(gl.TRIANGLES, cubeIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     }
 }
 
