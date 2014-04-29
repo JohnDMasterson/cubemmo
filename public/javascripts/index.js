@@ -5,7 +5,7 @@ var socket = io.connect('/');
 //my socket id;
 var myId = "";
 // Initializes position for the user;
-var position = {'x':0, 'y':0, 'z':0};
+var position = {'x':0, 'y':0, 'z':-10};
 //initializes the cubes direction
 var angle = 0;
 
