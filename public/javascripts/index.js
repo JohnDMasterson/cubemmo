@@ -469,17 +469,17 @@ function drawScene() {
         mat4.identity(mvMatrix);
 
 
-        //first, we rotate the world to how your cube see's it
-        mat4.rotate(mvMatrix, degToRad(-angle), [0,1,0]);
         //then we translate the world's origin to where your cube is
         mat4.translate(mvMatrix, [-position.x, -position.y, -position.z]);
 
+        //first, we rotate the world to how your cube see's it
+        mat4.rotate(mvMatrix, degToRad(-angle), [0,1,0]);
 
-        // , we rotate the other cube
-        mat4.rotate(mvMatrix, degToRad(otherCubes[c].ang), [0,1,0]);
         // , we translate the other cubes to the origin
         mat4.translate(mvMatrix, [otherCubes[c].pos.x, otherCubes[c].pos.y, otherCubes[c].pos.z]);
 
+        // , we rotate the other cube
+        mat4.rotate(mvMatrix, degToRad(otherCubes[c].ang), [0,1,0]);
 
 
 
