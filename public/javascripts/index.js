@@ -31,6 +31,7 @@ var pMatrix = mat4.create();
 //this is called when the document loads
 $(document).ready(function (){
 	webGLStart();
+	window.addEventListener('resize', resizeCanvas);
 
     //client is given his id
     socket.on('give_id', function (id) {
@@ -83,8 +84,7 @@ var getSourceSync = function(url) {
 function initGL(canvas) {
 	try {
 		gl = canvas.getContext("webgl");
-		gl.viewportWidth = canvas.width;
-		gl.viewportHeight = canvas.height;
+		resizeCanvas();
 	}
 	catch (e) {
 	}
@@ -318,6 +318,21 @@ function handleKeyDown(event) {
         socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
     }
        
+}
+
+
+
+function resizeCanvas() {
+	var canvas = document.getElementById("cubemmo-canvas");
+   // only change the size of the canvas if the size it's being displayed
+   // has changed.
+  
+   if (gl.viewportWidth != canvas.clientWidth ||
+       gl.viewportHeight != canvas.clientHeight) {
+     // Change the size of the canvas to match the size it's being displayed
+     gl.viewportWidth = canvas.width = canvas.clientWidth;
+     gl.viewportHeight = canvas.height = canvas.clientHeight;
+   }
 }
 
 	
