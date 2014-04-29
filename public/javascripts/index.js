@@ -481,10 +481,6 @@ function drawScene() {
         mat4.rotate(mvMatrix, degToRad(otherCubes[c].ang), [0,1,0]);
 
 
-
-
-
-
         setMatrixUniforms();
         gl.drawElements(gl.TRIANGLES, cubeIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
@@ -639,6 +635,12 @@ function moveForward(distance) {
 }
 
 function moveRight(distance) {
+    var xtemp = distance*Math.sin(degToRad(angle-90));
+    var ztemp = distance*Math.cos(degToRad(angle-90));
+    position.x = position.x - xtemp;
+    position.z = position.z - ztemp;
+
+
     socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} ); 
 }
 
