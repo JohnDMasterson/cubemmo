@@ -41,7 +41,7 @@ var socket = io.connect('cubemmo.herokuapp.com/');
 //my socket id;
 var myId = "";
 // Initializes position for the user;
-var position = {'x':0, 'y':0, 'z':0};
+var position = {'x':0, 'y':0, 'z':-10};
 //initializes the cubes direction
 var angle = 0;
 
@@ -65,6 +65,7 @@ var pMatrix = mat4.create();
 
 $(document).ready(function (){
 	webGLStart();
+	window.addEventListener('resize', resizeCanvas);
 
 
     //client is given his id
@@ -107,8 +108,7 @@ $(document).ready(function (){
 function initGL(canvas) {
 	try {
 		gl = canvas.getContext("webgl");
-		gl.viewportWidth = canvas.width;
-		gl.viewportHeight = canvas.height;
+		resizeCanvas();
 	}
 	catch (e) {
 	}
@@ -339,7 +339,7 @@ function handleKeyDown(event) {
     }
     //up
     if(event.keyCode == 38) {
-        position.z = position.z+1;
+        position.z = position.z-1;
         socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
     }
     //right
@@ -349,11 +349,25 @@ function handleKeyDown(event) {
     }
     //down
     if(event.keyCode == 40) {
-        position.z = position.z-1;
+        position.z = position.z+1;
         socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );
     }
        
 }
+
+function resizeCanvas() {
+	var canvas = document.getElementById("cubemmo-canvas");
+   // only change the size of the canvas if the size it's being displayed
+   // has changed.
+  
+   if (gl.viewportWidth != canvas.clientWidth ||
+       gl.viewportHeight != canvas.clientHeight) {
+     // Change the size of the canvas to match the size it's being displayed
+     gl.viewportWidth = canvas.width = canvas.clientWidth;
+     gl.viewportHeight = canvas.height = canvas.clientHeight;
+   }
+}
+
 </script>
 <body>
 	<div class="webgl_container">
