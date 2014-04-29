@@ -1,14 +1,9 @@
-/* 
-May not be the best way to do some things. 
-Still relatively inexperienced with making scalable styles. 
-*/
-
 .webgl_container {
 	background-color: black;
 	width: 100%;
 	height: 100%;
-    margin: auto auto;
-    display: block;
+	margin: auto auto;
+	display: block;
 }
 
 .canvas {
