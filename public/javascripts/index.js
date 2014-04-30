@@ -24,16 +24,10 @@ var cubeColorBuffer;
 //matrices used for transformations
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
-var mvStack = [];
 
 
 //matrix for knowing if key is pressed or not
 var isPressed = {};
-
-var lastDrawn = 0;
-var lastEngine = 0;
-
-
 
 
 
@@ -54,8 +48,10 @@ var lastEngine = 0;
 
 //this is called when the document loads
 $(document).ready(function (){
+
+
 	webGLStart();
-	window.addEventListener('resize', resizeCanvas);
+
 
     //client is given his id
     socket.on('give_id', function (id) {
@@ -101,97 +97,43 @@ $(document).ready(function (){
 
 
 
+//initializes webgl, sets up key handlers, and starts the program
+function webGLStart() {
+    var canvas = document.getElementById("cubemmo-canvas");
+    initGL(canvas);
+    initShaders();
+    initBuffers();
 
+    //arow key controls
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
 
+    
+    //background color, black
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    //enables 3D stuff
+    gl.enable(gl.DEPTH_TEST);
+    
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//used for getting files from server
-var getSourceSync = function(url) {
-		var req = new XMLHttpRequest();
-		req.open("GET", url, false);
-		req.send(null);
-		return (req.status == 200) ? req.responseText : null;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function initGL(canvas) {
-	try {
-		gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
-		resizeCanvas();
-	}
-	catch (e) {
-	}
-	
-	if(!gl) {
-		alert ("Could not initialize WebGL");
-	}
+    mainLoop();
 }
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//tries to start webgl. If it can't, it alerts the user
+function initGL(canvas) {
+    try {
+        gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    }
+    catch (e) {
+    }
+    
+    if(!gl) {
+        alert ("Could not initialize WebGL");
+    }
+}
 
 
 
@@ -221,41 +163,9 @@ function getShader(gl, glslcode, type) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function initShaders() {
-	var fsource = getSourceSync("shaders/default.frag");
-	var vsource = getSourceSync("shaders/default.vert");
+    var fsource = getSourceSync("shaders/default.frag");
+    var vsource = getSourceSync("shaders/default.vert");
 
     var fragmentShader = getShader(gl, fsource, "x-shader/x-fragment");
     var vertexShader = getShader(gl, vsource, "x-shader/x-vertex");
@@ -266,14 +176,14 @@ function initShaders() {
     gl.linkProgram(shaderProgram);
 
     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-        alert("Could not initialise shaders");
+        alert("Could not initialize shaders");
     }
 
     gl.useProgram(shaderProgram);
 
     shaderProgram.vertexAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
     gl.enableVertexAttribArray(shaderProgram.vertexAttribute);
-	
+    
     shaderProgram.colorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
     gl.enableVertexAttribArray(shaderProgram.colorAttribute);
 
@@ -283,61 +193,13 @@ function initShaders() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function setMatrixUniforms() {
-    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+//main loop for the program
+//calls the key handler, then draws
+function mainLoop() {
+    keyHandler();
+    drawScene();
+    requestAnimFrame(mainLoop);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -364,6 +226,9 @@ function initBuffers() {
     cubeVertexBuffer.numItems = 8;
 	
 	
+
+    //index buffer
+    //tells the shaer the order of what to draw
 	
 	cubeIndexBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer); 
@@ -396,7 +261,10 @@ function initBuffers() {
 	cubeIndexBuffer.numItems = 36;
 	
 	
-	
+
+    //color buffer
+	//tells shader what color each vertex is
+
 	cubeColorBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, cubeColorBuffer);
 	var colors = [
@@ -418,49 +286,29 @@ function initBuffers() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function drawScene() {
+
     //sets up viewport
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
     //clears out the previous buffers in video cards memory
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    //the section below deals with transformation matrices
 
     //perspective matrix
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
     
 
-
-
- 
-
     //the section below draws the squares
+
+    //binds the vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexAttribute, cubeVertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
     
+    //binds the colors
 	gl.bindBuffer(gl.ARRAY_BUFFER, cubeColorBuffer);
     gl.vertexAttribPointer(shaderProgram.colorAttribute, cubeColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
     
+    //binds indices
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
  
 
@@ -474,14 +322,19 @@ function drawScene() {
         //then we translate the world's origin to where your cube is
         mat4.translate(mvMatrix, [-position.x, -position.y, -position.z]);
 
-        // , we translate the other cubes to the origin
+        //next, we translate the other cubes to the origin
         mat4.translate(mvMatrix, [otherCubes[c].pos.x, otherCubes[c].pos.y, otherCubes[c].pos.z]);
 
-        // , we rotate the other cube
+        //finally, we rotate the other cube
         mat4.rotate(mvMatrix, degToRad(otherCubes[c].ang), [0,1,0]);
 
+        //passes matrices into shader program
+        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 
-        setMatrixUniforms();
+        //draws elements
+        //this uses the index buffer to choose the order of drawing
+        //it takes three indices at a time
         gl.drawElements(gl.TRIANGLES, cubeIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
     }
@@ -491,22 +344,7 @@ function drawScene() {
 
 
 
-
-
-
-function mvPushMatrix() {
-    var mvCopy = mat4.create();
-    mat4.set(mvMatrix, mvCopy);
-    mvStack.push(mvCopy);
-}
-
-function mvPopMatrix() {
-    if(mvStack.length == 0)
-        throw "matrix stack contains no matrices";
-    else
-        mvMatrix = mvStack.pop();
-}
-
+//converts degrees to radians
 function degToRad(degrees) {
     return degrees * Math.PI / 180;
 }
@@ -514,69 +352,13 @@ function degToRad(degrees) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function mainLoop() {
-    keyHandler();
-    drawScene();
-    requestAnimFrame(mainLoop);
-}
-
-
-
-
-
-
-
-
-function webGLStart() {
-	var canvas = document.getElementById("cubemmo-canvas");
-    initGL(canvas);
-    initShaders();
-    initBuffers();
-
-    //arow key controls
-    document.onkeydown = handleKeyDown;
-    document.onkeyup = handleKeyUp;
-
-	
-	//background color, black
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
-	//enables 3D stuff
-	gl.enable(gl.DEPTH_TEST);
-	
-
-	mainLoop();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//used for getting files from server
+var getSourceSync = function(url) {
+        var req = new XMLHttpRequest();
+        req.open("GET", url, false);
+        req.send(null);
+        return (req.status == 200) ? req.responseText : null;
+};
 
 
 
@@ -648,24 +430,6 @@ function turnRight(distance) {
         angle = (angle + distance)%360;    
         socket.emit('give_position', {'id':myId, 'pos':position, 'ang':angle} );   
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
