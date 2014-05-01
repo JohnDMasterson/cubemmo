@@ -11,17 +11,24 @@
 <script id="shader-fs" type="x-shader/x-fragment">
     precision mediump float;
 
+    varying vec4 vColor;
+
     void main(void) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = vColor;
     }
 </script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+
+    varying vec4 vColor;
 
     void main(void) {
         gl_Position = vec4(aVertexPosition, 1.0);
+        vColor = aVertexColor;
     }
+
 </script>
 
 
@@ -47,6 +54,7 @@ var gl;
 var shaderProgram;
 
 var vertexBuffer;
+var colorBuffer;
 
 //this is called when the document loads
 $(document).ready(function (){
@@ -113,9 +121,9 @@ function initGL(canvas) {
 
     //initializing webgl
     try {
-        gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
-        gl.viewportWidth = canvas.width;
-        gl.viewportHeight = canvas.height;
+        gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
     }
     catch (e) {
 
@@ -127,6 +135,21 @@ function initGL(canvas) {
         return;
     }
 }
+
+
+function resizeCanvas() {
+    var canvas = document.getElementById("cubemmo-canvas");
+   // only change the size of the canvas if the size it's being displayed
+   // has changed.
+  
+   if (gl.viewportWidth != canvas.clientWidth ||
+       gl.viewportHeight != canvas.clientHeight) {
+     // Change the size of the canvas to match the size it's being displayed
+     gl.viewportWidth = canvas.width = canvas.clientWidth;
+     gl.viewportHeight = canvas.height = canvas.clientHeight;
+   }
+}
+
 
 function initShaders() {
     var fragmentShader = getShader(gl, "shader-fs");
@@ -147,6 +170,8 @@ function initShaders() {
     shaderProgram.vertexAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
     gl.enableVertexAttribArray(shaderProgram.vertexAttribute);
  
+    shaderProgram.colorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+    gl.enableVertexAttribArray(shaderProgram.colorAttribute);
 }
 
 function getShader(gl, id) {
@@ -196,7 +221,23 @@ function initBuffers() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     vertexBuffer.itemSize = 3;
     vertexBuffer.numItems = 4;
+    
 
+    //color buffer
+    //tells shader what color each vertex is
+
+    colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    var colors = [
+        1.0,    0.0,    0.0,    1.0,
+        0.0,    1.0,    0.0,    1.0,
+        0.0,    0.0,    1.0,    1.0,
+        1.0,    0.0,    0.0,    1.0
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    colorBuffer.itemSize = 4;
+    colorBuffer.numItems = 4;
+    
 }
 
 function drawScene() {
@@ -205,6 +246,9 @@ function drawScene() {
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexAttribute, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.vertexAttribPointer(shaderProgram.colorAttribute, colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexBuffer.numItems);
 }
